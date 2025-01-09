@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot PDF Interaction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEJ2QJelz7I0Yqf1USpDgIm0WGrfz9qMNpn43eq" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .chat-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .chat-box {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            height: 400px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chat-box .message {
+            margin-bottom: 15px;
+        }
+
+        .chat-box .message.user-message {
+            text-align: right;
+        }
+
+        .chat-box .message.bot-message {
+            text-align: left;
+        }
+
+        .chat-input {
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-input input {
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            width: 100%;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .chat-input button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .chat-input button:hover {
+            background-color: #0056b3;
+        }
+
+        .file-upload-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-container button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .file-upload-container button:hover {
+            background-color: #218838;
+        }
+
+        .upload-feedback {
+            margin-top: 15px;
+        }
+
+        .alert-info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container chat-container mt-5">
+        <h2 class="text-center mb-4">Ask Questions from Your PDF</h2>
+
+        <!-- File upload section -->
+        <div class="file-upload-container">
+            <form method="POST" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.file.label(class="form-label") }}
+                    {{ form.file(class="form-control") }}
+                    {% if form.file.errors %}
+                        <div class="alert alert-danger mt-2">
+                            {% for error in form.file.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-success">{{ form.submit.label }}</button>
+            </form>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="alert alert-success mt-3">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% if filename %}
+                <div class="upload-feedback">
+                    <h5>Uploaded File: {{ filename }}</h5>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Chat display area -->
+        {% if filename %}
+        <div class="chat-box" id="chatBox">
+            <!-- Chat messages will be appended here -->
+        </div>
+
+        <!-- Chat input area -->
+        <div class="chat-input">
+            <input type="text" id="userText" class="form-control" placeholder="Type your question here..." autocomplete="off">
+            <button id="askBtn">Send</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Script to handle chat functionality -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const chatBox = $('#chatBox');
+            const userTextInput = $('#userText');
+            const askBtn = $('#askBtn');
+
+            // Function to display user and bot messages
+            function displayMessage(message, type) {
+                const messageDiv = $('<div>').addClass('message').addClass(type);
+                messageDiv.text(message);
+                chatBox.append(messageDiv);
+                chatBox.scrollTop(chatBox[0].scrollHeight);  // Scroll to bottom
+            }
+
+            // Handle click on the "Send" button
+            askBtn.click(function () {
+                const userText = userTextInput.val().trim();
+                if (userText) {
+                    // Display user message
+                    displayMessage(userText, 'user-message');
+                    userTextInput.val('');  // Clear input field
+
+                    // Show loading message
+                    displayMessage("Loading...", 'bot-message');
+
+                    // Send the user query to the server
+                    $.get("/get", { msg: userText }, function (response) {
+                        // Update the last bot message with the response
+                        $('.bot-message:last').text(response);
+                    }).fail(function () {
+                        $('.bot-message:last').text('Error retrieving answer.');
+                    });
+                }
+            });
+
+            // Handle "Enter" key press for sending the message
+            userTextInput.keypress(function (e) {
+                if (e.which === 13) {  // "Enter" key
+                    askBtn.click();
+                }
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pzjw8f+ua7Kw1TIq0io6SxjvnWeIZGmCOe8f9ylw7XQ2ek9Oem3l5b8Nkb8+XB5e" crossorigin="anonymous"></script>
+</body>
+
+</html>
