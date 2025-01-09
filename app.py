@@ -26,8 +26,7 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
 # Set OpenAI API key explicitly
-# os.environ["OPENAI_API_KEY"] = "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"
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+# os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 class UploadForm(FlaskForm):
     file = FileField('PDF File', validators=[InputRequired()])
